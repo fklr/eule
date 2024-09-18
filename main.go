@@ -60,8 +60,61 @@ func applicationCommandHandler(s *discordgo.Session, i *discordgo.InteractionCre
 
 	switch i.ApplicationCommandData().Name {
 	case "set_purge_interval":
-		//purge handler
+		handleSetPurgeInterval(s, i)
 	case "status":
-		//status handler
+		handleStatusCommand(s, i)
 	}
+}
+
+func handleSetPurgeInterval(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	options := i.ApplicationCommandData().Options
+	var intervalValue int64
+	var unit string
+	for _, option := range options {
+		switch option.Name {
+		case "interval":
+			intervalValue = option.IntValue()
+		case "unit":
+			unit = option.StringValue()
+		}
+	}
+
+	var interval time.Duration
+	switch unit {
+	case "hours":
+		interval = time.Duration(intervalValue) * time.Hour
+	case "days":
+		interval = time.Duration(intervalValue) * time.Hour * 24
+	default:
+		// Should not happen
+		return
+	}
+
+	channelID := i.ChannelID
+	purgeTasks[channelID] = &PurgeTask{
+		Interval:  interval,
+		NextPurge: time.Now().Add(interval),
+	}
+
+	response := &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: fmt.Sprintf("Purge interval set to %d %s for this channel.", intervalValue, unit),
+		},
+	}
+	s.InteractionRespond(i.Interaction, response)
+}
+
+func handleStatusCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	uptime := time.Since(startTime).Round(time.Second)
+	numTasks := len(purgeTasks)
+	statusMessage := fmt.Sprintf("Eule says hi!\nUptime: %s\nScheduled Purge Tasks: %d", uptime, numTasks)
+
+	response := &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: statusMessage,
+		},
+	}
+	s.InteractionRespond(i.Interaction, response)
 }
