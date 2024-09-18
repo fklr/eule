@@ -162,3 +162,74 @@ func registerCommands(s *discordgo.Session) {
 		}
 	}
 }
+
+func purgeChecker(s *discordgo.Session) {
+	ticker := time.NewTicker(1 * time.Minute)
+	for {
+		<-ticker.C
+		now := time.Now()
+		for channelID, task := range purgeTasks {
+			if now.After(task.NextPurge) {
+				go purgeChannel(s, channelID)
+				task.NextPurge = now.Add(task.Interval)
+			}
+		}
+	}
+}
+
+func purgeChannel(s *discordgo.Session, channelID string) {
+	fmt.Printf("Purging channel %s\n", channelID)
+
+	var messages []*discordgo.Message
+	var beforeID string
+
+	for {
+		msgs, err := s.ChannelMessages(channelID, 100, beforeID, "", "")
+		if err != nil {
+			fmt.Println("Error getting messages:", err)
+			break
+		}
+		if len(msgs) == 0 {
+			break
+		}
+		messages = append(messages, msgs...)
+		beforeID = msgs[len(msgs)-1].ID
+		if len(msgs) < 100 {
+			break
+		}
+	}
+
+	for i := 0; i < len(messages); i += 100 {
+		end := i + 100
+		if end > len(messages) {
+			end = len(messages)
+		}
+
+		messageIDs := make([]string, 0)
+		for _, msg := range messages[i:end] {
+			t := msg.Timestamp
+			if time.Since(t) < 14*24*time.Hour {
+				messageIDs = append(messageIDs, msg.ID)
+			} else {
+				err := s.ChannelMessageDelete(channelID, msg.ID)
+				if err != nil {
+					fmt.Println("Error deleting message:", err)
+				}
+			}
+		}
+
+		if len(messageIDs) > 1 {
+			err := s.ChannelMessagesBulkDelete(channelID, messageIDs)
+			if err != nil {
+				fmt.Println("Error bulk deleting messages:", err)
+			}
+		} else if len(messageIDs) == 1 {
+			err := s.ChannelMessageDelete(channelID, messageIDs[0])
+			if err != nil {
+				fmt.Println("Error deleting message:", err)
+			}
+		}
+	}
+
+	fmt.Printf("Channel %s purged.\n", channelID)
+}
