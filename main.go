@@ -118,3 +118,47 @@ func handleStatusCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 	s.InteractionRespond(i.Interaction, response)
 }
+
+func registerCommands(s *discordgo.Session) {
+	commands := []*discordgo.ApplicationCommand{
+		{
+			Name:        "set_purge_interval",
+			Description: "Set the purge interval for this channel.",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionInteger,
+					Name:        "interval",
+					Description: "Interval",
+					Required:    true,
+				},
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "unit",
+					Description: "Unit of time (hours or days)",
+					Required:    true,
+					Choices: []*discordgo.ApplicationCommandOptionChoice{
+						{
+							Name:  "Hours",
+							Value: "hours",
+						},
+						{
+							Name:  "Days",
+							Value: "days",
+						},
+					},
+				},
+			},
+		},
+		{
+			Name:        "status",
+			Description: "Check Eule's status.",
+		},
+	}
+
+	for _, command := range commands {
+		_, err := s.ApplicationCommandCreate(s.State.User.ID, "", command)
+		if err != nil {
+			fmt.Printf("Cannot create '%s' command: %v\n", command.Name, err)
+		}
+	}
+}
