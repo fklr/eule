@@ -1,0 +1,23 @@
+[package]
+name = "eule"
+version = "0.1.0"
+edition = "2021"
+author = "@ovnanova"
+description = "A simple Discord bot for periodically cleaning message history"
+
+[dependencies]
+tokio = { version = "1.28", features = ["full"] }
+serenity = { version = "0.11", default-features = false, features = ["client", "gateway", "rustls_backend", "model", "cache", "framework", "standard_framework"] }
+sled = "0.34"
+
+[dev-dependencies]
+tokio-test = "0.4"
+mockall = "0.11"
+assert_matches = "1.5"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+opt-level = 3
+strip = true
