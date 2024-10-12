@@ -1,4 +1,4 @@
-use eule::Bot;
+use eule::bot::Bot;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
