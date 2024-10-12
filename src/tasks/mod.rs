@@ -1,3 +1,3 @@
 mod cleanup;
 
-pub use cleanup::*;
+pub use cleanup::CleanupManager;
