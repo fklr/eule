@@ -1,34 +1,20 @@
-use crate::ContextData;
-use crate::{CleanupTaskCount, StartTime};
-use serenity::client::Context;
-use serenity::framework::standard::{macros::command, CommandResult};
-use serenity::model::prelude::Message;
-use std::time::{Duration, SystemTime};
+use crate::{Context, EuleError};
 
-#[command]
-#[description("Check Eule's status")]
-pub async fn status(ctx: &Context, msg: &Message) -> CommandResult {
-    let data = ctx.data().read().await;
-    let start_time = data
-        .get::<StartTime>()
-        .expect("Expected StartTime in TypeMap");
-    let uptime = SystemTime::now()
-        .duration_since(*start_time)
-        .unwrap_or(Duration::from_secs(0));
+#[poise::command(slash_command, prefix_command)]
+pub async fn status(ctx: Context<'_>) -> Result<(), EuleError> {
+    let uptime = ctx.data().cleanup_manager.uptime().await;
+    let task_count = ctx.data().cleanup_manager.task_count().await;
 
-    let cleanup_tasks = data
-        .get::<CleanupTaskCount>()
-        .expect("Expected CleanupTaskCount in TypeMap");
-    let task_count = cleanup_tasks.load(std::sync::atomic::Ordering::Relaxed);
+    let days = uptime.as_secs() / 86400;
+    let hours = (uptime.as_secs() % 86400) / 3600;
+    let minutes = (uptime.as_secs() % 3600) / 60;
+    let seconds = uptime.as_secs() % 60;
 
-    let status_message = format!(
-        "Eule says Hi!\nUptime: {} days, {} hours, {} minutes\nScheduled Cleanup Tasks: {}",
-        uptime.as_secs() / 86400,
-        (uptime.as_secs() % 86400) / 3600,
-        (uptime.as_secs() % 3600) / 60,
-        task_count
-    );
+    ctx.say(format!(
+        "You look kind of familiar... have we met before?\nUptime: {} days, {} hours, {} minutes, {} seconds\nScheduled Cleanup Tasks: {}",
+        days, hours, minutes, seconds, task_count
+    ))
+    .await?;
 
-    msg.reply(&ctx.http, status_message).await?;
     Ok(())
 }
