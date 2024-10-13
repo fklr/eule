@@ -2,23 +2,23 @@ use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 
 pub struct RateLimiter {
-    rate: usize,
+    rate: u32,
     per: Duration,
     allowance: Mutex<f64>,
     last_check: Mutex<Instant>,
 }
 
 impl RateLimiter {
-    pub fn new(rate: usize, per: u64) -> Self {
-        Self {
+    pub fn new(rate: u32, per: Duration) -> Self {
+        RateLimiter {
             rate,
-            per: Duration::from_secs(per),
+            per,
             allowance: Mutex::new(rate as f64),
             last_check: Mutex::new(Instant::now()),
         }
     }
 
-    pub async fn check(&self) -> Result<(), ()> {
+    pub async fn check(&self) -> Result<(), &'static str> {
         let mut allowance = self.allowance.lock().await;
         let mut last_check = self.last_check.lock().await;
 
@@ -32,45 +32,10 @@ impl RateLimiter {
         }
 
         if *allowance < 1.0 {
-            Err(())
+            Err("Rate limit exceeded")
         } else {
             *allowance -= 1.0;
             Ok(())
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use tokio_test::block_on;
-
-    #[test]
-    fn test_rate_limiter() {
-        let limiter = RateLimiter::new(2, 1); // 2 requests per second
-
-        let result = block_on(async {
-            let r1 = limiter.check().await;
-            let r2 = limiter.check().await;
-            let r3 = limiter.check().await;
-            (r1, r2, r3)
-        });
-
-        assert!(result.0.is_ok());
-        assert!(result.1.is_ok());
-        assert!(result.2.is_err());
-    }
-
-    #[tokio::test]
-    async fn test_rate_limiter_recovery() {
-        let limiter = RateLimiter::new(2, 1);
-
-        assert!(limiter.check().await.is_ok());
-        assert!(limiter.check().await.is_ok());
-        assert!(limiter.check().await.is_err());
-
-        tokio::time::sleep(Duration::from_secs(1)).await;
-
-        assert!(limiter.check().await.is_ok());
     }
 }

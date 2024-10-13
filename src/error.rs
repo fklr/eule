@@ -8,14 +8,17 @@ pub enum EuleError {
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
 
+    #[error("This command can only be used in a server")]
+    NotInGuild,
+
     #[error("Poise error: {0}")]
     Poise(#[from] poise::serenity_prelude::Error),
 
-    #[error("Serialization error: {0}")]
-    Serialization(#[from] serde_json::Error),
-
     #[error("Rate limit exceeded")]
     RateLimitExceeded,
+
+    #[error("Serialization error: {0}")]
+    Serialization(#[from] serde_json::Error),
 
     #[error("Tracing setup failed: {0}")]
     TracingSetupFailed(String),

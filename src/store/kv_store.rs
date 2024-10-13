@@ -1,34 +1,34 @@
+use crate::Result;
 use sled::Db;
-use std::error::Error;
 use std::path::Path;
-
-pub trait KvStoreOperations {
-    fn get(&self, key: &str) -> Result<Option<String>, Box<dyn Error>>;
-    fn set(&self, key: &str, value: &str) -> Result<(), Box<dyn Error>>;
-}
+use std::sync::Arc;
 
 pub struct KvStore {
-    db: Db,
+    db: Arc<Db>,
 }
 
 impl KvStore {
-    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, sled::Error> {
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
         Ok(Self {
-            db: sled::open(path)?,
+            db: Arc::new(sled::open(path)?),
         })
     }
-}
 
-impl KvStoreOperations for KvStore {
-    fn get(&self, key: &str) -> Result<Option<String>, Box<dyn Error>> {
+    pub fn get(&self, key: &str) -> Result<Option<String>> {
         Ok(self
             .db
             .get(key)?
             .map(|ivec| String::from_utf8_lossy(&ivec).into_owned()))
     }
 
-    fn set(&self, key: &str, value: &str) -> Result<(), Box<dyn Error>> {
+    pub fn set(&self, key: &str, value: &str) -> Result<()> {
         self.db.insert(key, value.as_bytes())?;
+        self.db.flush()?;
+        Ok(())
+    }
+
+    pub fn delete(&self, key: &str) -> Result<()> {
+        self.db.remove(key)?;
         self.db.flush()?;
         Ok(())
     }
