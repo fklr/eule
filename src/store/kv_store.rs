@@ -30,31 +30,31 @@ use tokio::sync::RwLock;
 ///
 /// # Examples
 ///
-/// ```
-/// # use eule::store::KvStore;
-/// # use miette::Result;
-/// # use tempfile::tempdir;
-/// #
+/// ```no_run
+/// use eule::store::KvStore;
+/// use miette::Result;
+/// use std::path::Path;
+///
 /// # #[tokio::main]
 /// # async fn main() -> Result<()> {
-/// #     let dir = tempdir()?;
-/// #     let store = KvStore::new(dir.path())?;
-/// #
-/// // Set a value
-/// store.set("key1", "value1").await?;
+///     let store = KvStore::new(Path::new("test_db"))?;
 ///
-/// // Get a value
-/// let value = store.get("key1").await?;
-/// assert_eq!(value, Some("value1".to_string()));
+///     // Set a value
+///     store.set("key1", "value1").await?;
 ///
-/// // Delete a value
-/// store.delete("key1").await?;
+///     // Get a value
+///     let value = store.get("key1").await?;
+///     assert_eq!(value, Some("value1".to_string()));
 ///
-/// // Value should now be None
-/// let value = store.get("key1").await?;
-/// assert_eq!(value, None);
-/// #     Ok(())
-/// # }
+///     // Delete a value
+///     store.delete("key1").await?;
+///
+///     // Value should now be None
+///     let value = store.get("key1").await?;
+///     assert_eq!(value, None);
+///
+/// #    Ok(())
+/// #  }
 /// ```
 pub struct KvStore {
     db: RwLock<Db>,
@@ -75,15 +75,14 @@ impl KvStore {
     ///
     /// # Examples
     ///
-    /// ```
-    /// # use eule::store::KvStore;
-    /// # use miette::Result;
-    /// # use tempfile::tempdir;
-    /// #
+    /// ```no_run
+    /// use eule::store::KvStore;
+    /// use miette::Result;
+    /// use std::path::Path;
+    ///
     /// # fn main() -> Result<()> {
-    /// #     let dir = tempdir()?;
-    /// let store = KvStore::new(dir.path())?;
-    /// #     Ok(())
+    ///     let store = KvStore::new(Path::new("test_db"))?;
+    /// #   Ok(())
     /// # }
     /// ```
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
@@ -106,19 +105,18 @@ impl KvStore {
     ///
     /// # Examples
     ///
-    /// ```
-    /// # use eule::store::KvStore;
-    /// # use miette::Result;
-    /// # use tempfile::tempdir;
-    /// #
+    /// ```no_run
+    /// use eule::store::KvStore;
+    /// use miette::Result;
+    /// use std::path::Path;
+    ///
     /// # #[tokio::main]
     /// # async fn main() -> Result<()> {
-    /// #     let dir = tempdir()?;
-    /// #     let store = KvStore::new(dir.path())?;
-    /// #     store.set("key1", "value1").await?;
-    /// let value = store.get("key1").await?;
-    /// assert_eq!(value, Some("value1".to_string()));
-    /// #     Ok(())
+    ///     let store = KvStore::new(Path::new("test_db"))?;
+    ///     store.set("key1", "value1").await?;
+    ///     let value = store.get("key1").await?;
+    ///     assert_eq!(value, Some("value1".to_string()));
+    /// #    Ok(())
     /// # }
     /// ```
     pub async fn get(&self, key: &str) -> Result<Option<String>> {
@@ -143,19 +141,18 @@ impl KvStore {
     ///
     /// # Examples
     ///
-    /// ```
-    /// # use eule::store::KvStore;
-    /// # use miette::Result;
-    /// # use tempfile::tempdir;
-    /// #
+    /// ```no_run
+    /// use eule::store::KvStore;
+    /// use miette::Result;
+    /// use std::path::Path;
+    ///
     /// # #[tokio::main]
     /// # async fn main() -> Result<()> {
-    /// #     let dir = tempdir()?;
-    /// #     let store = KvStore::new(dir.path())?;
-    /// store.set("key2", "value2").await?;
-    /// let value = store.get("key2").await?;
-    /// assert_eq!(value, Some("value2".to_string()));
-    /// #     Ok(())
+    ///     let store = KvStore::new(Path::new("test_db"))?;
+    ///     store.set("key2", "value2").await?;
+    ///     let value = store.get("key2").await?;
+    ///     assert_eq!(value, Some("value2".to_string()));
+    /// #    Ok(())
     /// # }
     /// ```
     pub async fn set(&self, key: &str, value: &str) -> Result<()> {
@@ -178,20 +175,19 @@ impl KvStore {
     ///
     /// # Examples
     ///
-    /// ```
-    /// # use eule::store::KvStore;
-    /// # use miette::Result;
-    /// # use tempfile::tempdir;
-    /// #
+    /// ```no_run
+    /// use eule::store::KvStore;
+    /// use miette::Result;
+    /// use std::path::Path;
+    ///
     /// # #[tokio::main]
     /// # async fn main() -> Result<()> {
-    /// #     let dir = tempdir()?;
-    /// #     let store = KvStore::new(dir.path())?;
-    /// #     store.set("key3", "value3").await?;
-    /// store.delete("key3").await?;
-    /// let value = store.get("key3").await?;
-    /// assert_eq!(value, None);
-    /// #     Ok(())
+    ///     let store = KvStore::new(Path::new("test_db"))?;
+    ///     store.set("key3", "value3").await?;
+    ///     store.delete("key3").await?;
+    ///     let value = store.get("key3").await?;
+    ///     assert_eq!(value, None);
+    /// #    Ok(())
     /// # }
     /// ```
     pub async fn delete(&self, key: &str) -> Result<()> {

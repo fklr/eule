@@ -8,19 +8,13 @@ use poise::serenity_prelude as serenity;
 
 /// Cleans up a specified number of messages in the current channel.
 ///
-/// This command deletes a number of recent messages from the channel where it's invoked.
-/// If no number is specified, it defaults to 10 messages. The maximum number of
-/// messages that can be deleted in a single command is 100.
+/// This command allows users with the `MANAGE_MESSAGES` permission to delete
+/// a number of recent messages from the channel where it's invoked.
 ///
 /// # Arguments
 ///
 /// * `ctx` - The command context, containing information about the invocation and bot data.
 /// * `number` - An optional number of messages to clean. If not provided, defaults to 10.
-///
-/// # Returns
-///
-/// A Result containing Ok(()) if the messages were successfully cleaned,
-/// or an EuleError if there was an issue.
 ///
 /// # Permissions
 ///
@@ -28,15 +22,9 @@ use poise::serenity_prelude as serenity;
 ///
 /// # Examples
 ///
-/// To clean the default number of messages (10):
-/// ```
-/// /clean
-/// ```
-///
-/// To clean a specific number of messages (e.g., 25):
-/// ```
-/// /clean 25
-/// ```
+/// Using the command:
+/// - `/clean` (cleans 10 messages)
+/// - `/clean 25` (cleans 25 messages)
 #[poise::command(
     slash_command,
     prefix_command,
