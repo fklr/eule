@@ -1,10 +1,10 @@
-use crate::tasks::{
-    autoclean_manager::cleanup_channel,
-    cleanup_task::CleanupTask
-};
+use crate::tasks::{autoclean_manager::cleanup_channel, cleanup_task::CleanupTask};
 use poise::serenity_prelude::{ChannelId, GuildId, Http};
 use std::{collections::HashMap, sync::Arc};
-use tokio::{sync::{mpsc, RwLock}, task::JoinHandle};
+use tokio::{
+    sync::{mpsc, RwLock},
+    task::JoinHandle,
+};
 
 pub struct WorkerCleanupTask {
     guild_id: GuildId,

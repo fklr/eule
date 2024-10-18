@@ -4,8 +4,8 @@
 use crate::{
     error::EuleError,
     store::KvStore,
-    utils::{rate_limiter::RateLimiter, serializable_instant::SerializableInstant},
     tasks::{cleanup_task::CleanupTask, worker_pool::WorkerPool},
+    utils::{rate_limiter::RateLimiter, serializable_instant::SerializableInstant},
 };
 use miette::Result;
 use poise::serenity_prelude::{ChannelId, GuildId, Http};
