@@ -2,18 +2,26 @@
 name = "eule"
 version = "0.1.0"
 edition = "2021"
-author = "@ovnanova"
+authors = ["@ovnanova"]
 description = "A simple Discord bot for periodically cleaning message history"
 
 [dependencies]
-tokio = { version = "1.28", features = ["full"] }
-serenity = { version = "0.11", default-features = false, features = ["client", "gateway", "rustls_backend", "model", "cache", "framework", "standard_framework"] }
-sled = "0.34"
+clap = { version = "4.5.20", features = ["cargo", "derive"] }
+jemallocator = "0.5.4"
+miette = { version = "5.9.0", features = ["fancy", "owo-colors"] }
+owo-colors = "4.1.0"
+poise = "0.6.1"
+rpassword = "7.3.1"
+serde = { version = "1.0.210", features = ["derive"] }
+serde_json = "1.0.128"
+sled = "0.34.7"
+tokio = { version = "1.40", features = ["full"] }
+tracing = "0.1.40"
+tracing-appender = "0.2.3"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter", "time"] }
 
 [dev-dependencies]
-tokio-test = "0.4"
-mockall = "0.11"
-assert_matches = "1.5"
+async-trait = "0.1.83"
 
 [profile.release]
 lto = true
@@ -21,3 +29,15 @@ codegen-units = 1
 panic = "abort"
 opt-level = 3
 strip = true
+
+[[bin]]
+name = "eule"
+path = "src/main.rs"
+
+[lib]
+name = "eule"
+path = "src/lib.rs"
+
+[package.metadata.eule]
+default_log_level = "info"
+eule_log_level = "debug"
