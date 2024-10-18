@@ -12,3 +12,9 @@ Cargo.lock
 
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
+
+eule_data/
+logs/
+
+# In the event any test_dbs aren't successfully cleaned up
+test_db*
