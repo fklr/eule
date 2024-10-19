@@ -20,6 +20,9 @@ fn test_all_error_variants() {
         EuleError::TracingSetupFailed("Tracing setup error".into()),
         EuleError::Poise("Poise framework error".into()),
         EuleError::Miette(Report::msg("Miette error")),
+        EuleError::KeyDerivationError("Key derivation failed".into()),
+        EuleError::EncryptionError("Encryption failed".into()),
+        EuleError::DecryptionError("Decryption failed".into()),
         EuleError::Connection(ConnectionError::FailedConnectionAttempt(
             "Failed to connect".into(),
         )),
@@ -59,6 +62,9 @@ fn test_error_display() {
         EuleError::TracingSetupFailed("Tracing setup error".into()),
         EuleError::Poise("Poise framework error".into()),
         EuleError::Miette(Report::msg("Miette error")),
+        EuleError::KeyDerivationError("Key derivation failed".into()),
+        EuleError::EncryptionError("Encryption failed".into()),
+        EuleError::DecryptionError("Decryption failed".into()),
         EuleError::Connection(ConnectionError::FailedConnectionAttempt(
             "Failed to connect".into(),
         )),
@@ -89,6 +95,11 @@ fn test_error_display() {
             }
             EuleError::Poise(_) => assert!(error_string.contains("Poise framework error")),
             EuleError::Miette(_) => assert!(error_string.contains("Miette error")),
+            EuleError::KeyDerivationError(_) => {
+                assert!(error_string.contains("Key derivation error"))
+            }
+            EuleError::EncryptionError(_) => assert!(error_string.contains("Encryption error")),
+            EuleError::DecryptionError(_) => assert!(error_string.contains("Decryption error")),
             EuleError::Connection(ConnectionError::FailedConnectionAttempt(_)) => {
                 assert!(error_string.contains("Failed connection attempt"))
             }

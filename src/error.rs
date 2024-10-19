@@ -57,6 +57,18 @@ pub enum EuleError {
     #[diagnostic(code(eule::miette))]
     Miette(MietteReport),
 
+    /// Represents errors during key derivation.
+    #[diagnostic(code(eule::key_derivation))]
+    KeyDerivationError(String),
+
+    /// Represents errors during encryption.
+    #[diagnostic(code(eule::encryption))]
+    EncryptionError(String),
+
+    /// Represents errors during decryption.
+    #[diagnostic(code(eule::decryption))]
+    DecryptionError(String),
+
     /// Represents errors related to connection handling.
     #[diagnostic(code(eule::connection))]
     Connection(ConnectionError),
@@ -107,6 +119,15 @@ impl fmt::Display for EuleError {
             }
             EuleError::Poise(e) => write!(f, "{}: {}", "Poise framework error".red().bold(), e),
             EuleError::Miette(e) => write!(f, "{}: {}", "Miette error".red().bold(), e),
+            EuleError::KeyDerivationError(e) => {
+                write!(f, "{}: {}", "Key derivation error".red().bold(), e)
+            }
+            EuleError::EncryptionError(e) => {
+                write!(f, "{}: {}", "Encryption error".red().bold(), e)
+            }
+            EuleError::DecryptionError(e) => {
+                write!(f, "{}: {}", "Decryption error".red().bold(), e)
+            }
             EuleError::Connection(e) => write!(f, "{}: {}", "Connection error".red().bold(), e),
         }
     }
