@@ -56,6 +56,10 @@ pub enum EuleError {
     /// Represents errors from the Miette error reporting library.
     #[diagnostic(code(eule::miette))]
     Miette(MietteReport),
+
+    /// Represents errors related to connection handling.
+    #[diagnostic(code(eule::connection))]
+    Connection(ConnectionError),
 }
 
 /// Conversion from MietteReport to EuleError
@@ -103,7 +107,61 @@ impl fmt::Display for EuleError {
             }
             EuleError::Poise(e) => write!(f, "{}: {}", "Poise framework error".red().bold(), e),
             EuleError::Miette(e) => write!(f, "{}: {}", "Miette error".red().bold(), e),
+            EuleError::Connection(e) => write!(f, "{}: {}", "Connection error".red().bold(), e),
         }
+    }
+}
+
+/// Represents errors specific to the connection handling process.
+#[derive(Debug, Diagnostic)]
+pub enum ConnectionError {
+    /// Represents a failed connection attempt.
+    #[diagnostic(code(eule::connection::failed_attempt))]
+    FailedConnectionAttempt(String),
+
+    /// Represents an error when the maximum retry limit is reached.
+    #[diagnostic(code(eule::connection::max_retries_reached))]
+    MaxRetriesReached,
+
+    /// Represents an error when trying to send a command to the connection handler.
+    #[diagnostic(code(eule::connection::command_send_error))]
+    CommandSendError(String),
+
+    /// Represents an error when trying to receive a command in the connection handler.
+    #[diagnostic(code(eule::connection::command_receive_error))]
+    CommandReceiveError(String),
+
+    /// Represents an unexpected shutdown of the connection.
+    #[diagnostic(code(eule::connection::unexpected_shutdown))]
+    UnexpectedShutdown,
+}
+
+impl fmt::Display for ConnectionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ConnectionError::FailedConnectionAttempt(msg) => {
+                write!(f, "Failed connection attempt: {}", msg)
+            }
+            ConnectionError::MaxRetriesReached => {
+                write!(f, "Maximum number of retry attempts reached")
+            }
+            ConnectionError::CommandSendError(msg) => write!(f, "Failed to send command: {}", msg),
+            ConnectionError::CommandReceiveError(msg) => {
+                write!(f, "Failed to receive command: {}", msg)
+            }
+            ConnectionError::UnexpectedShutdown => {
+                write!(f, "Connection handler unexpectedly shut down")
+            }
+        }
+    }
+}
+
+impl std::error::Error for ConnectionError {}
+
+// Add a conversion from ConnectionError to EuleError
+impl From<ConnectionError> for EuleError {
+    fn from(err: ConnectionError) -> Self {
+        EuleError::Connection(err)
     }
 }
 
