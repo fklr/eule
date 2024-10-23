@@ -1,37 +1,48 @@
 //! Connection Handler for Eule
 //!
-//! This module provides a utility class for managing the bot's connection to Discord,
+//! This module provides a utility struct for managing the bot's connection to Discord,
 //! including automatic reconnection with exponential backoff and runtime reconnection attempts.
 
 use crate::bot::Bot;
 use crate::error::EuleError;
 use std::sync::Arc;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
-use tokio::time::{sleep, Duration, Instant};
+use tokio::time::{Duration, Instant};
 
 /// Represents the different states of the connection.
-#[derive(Debug)]
-enum ConnectionState {
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ConnectionState {
+    /// The bot is connected to Discord.
     Connected,
+    /// The bot is disconnected from Discord.
     Disconnected,
+    /// The bot is attempting to reconnect to Discord.
     Reconnecting,
-}
-
-/// Handles the bot's connection to Discord, including automatic reconnection.
-pub struct ConnectionHandler {
-    bot: Arc<Bot>,
-    pub max_retry_interval: Duration,
-    state: ConnectionState,
-    last_connection_attempt: Instant,
-    command_rx: Receiver<ConnectionCommand>,
-    command_tx: Sender<ConnectionCommand>,
 }
 
 /// Commands that can be sent to the ConnectionHandler.
 #[derive(Debug)]
 pub enum ConnectionCommand {
+    /// Command to trigger a reconnection attempt.
     Reconnect,
+    /// Command to shut down the connection handler.
     Shutdown,
+}
+
+/// Handles the bot's connection to Discord, including automatic reconnection.
+pub struct ConnectionHandler {
+    /// The bot instance being managed.
+    bot: Arc<Bot>,
+    /// The maximum duration to wait between reconnection attempts.
+    pub max_retry_interval: Duration,
+    /// The current state of the connection.
+    state: ConnectionState,
+    /// The timestamp of the last connection attempt.
+    last_connection_attempt: Instant,
+    /// Receiver for connection commands.
+    command_rx: Receiver<ConnectionCommand>,
+    /// Sender for connection commands.
+    command_tx: Sender<ConnectionCommand>,
 }
 
 impl ConnectionHandler {
@@ -62,6 +73,11 @@ impl ConnectionHandler {
         self.command_tx.clone()
     }
 
+    /// Returns the current connection state.
+    pub fn state(&self) -> ConnectionState {
+        self.state
+    }
+
     /// Runs the bot, handling disconnections and reconnections.
     ///
     /// This method will continue running until a shutdown command is received
@@ -79,15 +95,12 @@ impl ConnectionHandler {
                     if self.last_connection_attempt.elapsed() >= backoff {
                         match self.bot.connect().await {
                             Ok(_) => {
-                                println!("Bot connected successfully.");
+                                tracing::info!("Bot connected successfully.");
                                 self.state = ConnectionState::Connected;
                                 backoff = Duration::from_secs(1);
                             }
                             Err(e) => {
-                                eprintln!(
-                                    "Connection attempt failed: {}. Retrying in {:?}...",
-                                    e, backoff
-                                );
+                                tracing::error!("Connection attempt failed: {}. Retrying in {:?}...", e, backoff);
                                 self.state = ConnectionState::Reconnecting;
                                 self.last_connection_attempt = Instant::now();
                                 backoff = std::cmp::min(backoff * 2, self.max_retry_interval);
@@ -97,29 +110,30 @@ impl ConnectionHandler {
                 }
                 ConnectionState::Connected => {
                     if let Err(e) = self.bot.run().await {
-                        eprintln!("Bot disconnected: {}. Attempting to reconnect...", e);
+                        tracing::error!("Bot disconnected: {}. Attempting to reconnect...", e);
                         self.state = ConnectionState::Reconnecting;
                         self.last_connection_attempt = Instant::now();
                     }
                 }
             }
 
-            // Check for incoming commands
-            match self.command_rx.try_recv() {
-                Ok(ConnectionCommand::Reconnect) => {
-                    println!("Received reconnection command.");
-                    self.state = ConnectionState::Reconnecting;
-                    self.last_connection_attempt = Instant::now() - backoff; // Attempt immediate reconnection
+            tokio::select! {
+                _ = tokio::time::sleep(Duration::from_millis(100)) => {}
+                command = self.command_rx.recv() => {
+                    match command {
+                        Some(ConnectionCommand::Reconnect) => {
+                            tracing::info!("Received reconnection command.");
+                            self.state = ConnectionState::Reconnecting;
+                            self.last_connection_attempt = Instant::now() - backoff;
+                        }
+                        Some(ConnectionCommand::Shutdown) => {
+                            tracing::info!("Received shutdown command. Exiting.");
+                            break Ok(());
+                        }
+                        None => break Ok(()),
+                    }
                 }
-                Ok(ConnectionCommand::Shutdown) => {
-                    println!("Received shutdown command. Exiting.");
-                    break Ok(());
-                }
-                Err(_) => {} // No command received, continue as normal
             }
-
-            // Small delay to prevent tight looping
-            sleep(Duration::from_millis(100)).await;
         }
     }
 }

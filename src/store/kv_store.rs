@@ -4,13 +4,12 @@
 //! for Eule. It is built on top of the `sled` embedded database
 //! and offers a simple interface for storing, retrieving, and deleting key-value pairs.
 //!
-//! The `KvStore` struct is the main component of this module. It encapsulates
-//! the database operations and ensures thread-safety through the use of Tokio's
-//! asynchronous read-write lock (`RwLock`).
+//! The `KvStore` struct is the main component of this module. It directly encapsulates
+//! the sled database, leveraging its built-in thread-safety and MVCC capabilities.
 //!
 //! Key features:
 //! - Persistent storage using the `sled` embedded database
-//! - Asynchronous, thread-safe operations
+//! - Thread-safe operations utilizing sled's built-in concurrency
 //! - Simple API for get, set, and delete operations
 //! - Error handling using the `miette` crate
 //!
@@ -18,15 +17,14 @@
 //! data across restarts and maintain state information for various features,
 //! such as tasks and bot configurations.
 
-use crate::EuleError;
+use crate::error::EuleError;
 use miette::Result;
 use sled::Db;
 use std::path::Path;
-use tokio::sync::RwLock;
 
 /// This struct provides a simple interface for storing, retrieving, and deleting
-/// key-value pairs in a persistent storage. It uses Tokio's RwLock to ensure
-/// thread-safety for concurrent operations in an asynchronous context.
+/// key-value pairs in a persistent storage. It directly uses sled's Db, which is
+/// already thread-safe and optimized for concurrent access.
 ///
 /// # Examples
 ///
@@ -54,10 +52,10 @@ use tokio::sync::RwLock;
 ///     assert_eq!(value, None);
 ///
 /// #    Ok(())
-/// #  }
+/// # }
 /// ```
 pub struct KvStore {
-    db: RwLock<Db>,
+    db: Db,
 }
 
 impl KvStore {
@@ -85,11 +83,9 @@ impl KvStore {
     /// #   Ok(())
     /// # }
     /// ```
-    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, EuleError> {
         let db = sled::open(path).map_err(EuleError::from)?;
-        Ok(Self {
-            db: RwLock::new(db),
-        })
+        Ok(Self { db })
     }
 
     /// Retrieves a value from the store by its key.
@@ -120,8 +116,7 @@ impl KvStore {
     /// # }
     /// ```
     pub async fn get(&self, key: &str) -> Result<Option<String>> {
-        let db = self.db.read().await;
-        Ok(db
+        Ok(self.db
             .get(key)
             .map_err(EuleError::from)?
             .map(|ivec| String::from_utf8_lossy(&ivec).into_owned()))
@@ -156,9 +151,10 @@ impl KvStore {
     /// # }
     /// ```
     pub async fn set(&self, key: &str, value: &str) -> Result<()> {
-        let db = self.db.write().await;
-        db.insert(key, value.as_bytes()).map_err(EuleError::from)?;
-        db.flush().map_err(EuleError::from)?;
+        self.db
+            .insert(key, value.as_bytes())
+            .and_then(|_| self.db.flush())
+            .map_err(EuleError::from)?;
         Ok(())
     }
 
@@ -191,9 +187,10 @@ impl KvStore {
     /// # }
     /// ```
     pub async fn delete(&self, key: &str) -> Result<()> {
-        let db = self.db.write().await;
-        db.remove(key).map_err(EuleError::from)?;
-        db.flush().map_err(EuleError::from)?;
+        self.db
+            .remove(key)
+            .and_then(|_| self.db.flush())
+            .map_err(EuleError::from)?;
         Ok(())
     }
 }

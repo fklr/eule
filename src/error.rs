@@ -7,8 +7,9 @@
 use miette::{Diagnostic, Report as MietteReport};
 use owo_colors::OwoColorize;
 use poise::serenity_prelude::Error as SerenityError;
+use serde_json::Error as SerdeError;
 use sled::Error as SledError;
-use std::fmt;
+use std::{fmt, io::Error as IoError};
 
 /// Represents all possible errors in Eule.
 #[derive(Debug, Diagnostic)]
@@ -27,11 +28,11 @@ pub enum EuleError {
 
     /// Represents I/O errors.
     #[diagnostic(code(eule::io))]
-    Io(std::io::Error),
+    Io(IoError),
 
     /// Represents errors during serialization or deserialization.
     #[diagnostic(code(eule::serialization))]
-    Serialization(serde_json::Error),
+    Serialization(SerdeError),
 
     /// Represents errors when acquiring locks.
     #[diagnostic(code(eule::lock))]

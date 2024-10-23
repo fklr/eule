@@ -233,7 +233,7 @@ impl AutocleanManager {
     /// A Result indicating success or failure of the load operation.
     ///
     pub async fn load_tasks(&self) -> Result<()> {
-        let serialized = self.kv_store.get("cleanup_tasks").await?;
+        let serialized: Option<String> = self.kv_store.get("cleanup_tasks").await?;
         if let Some(serialized) = serialized {
             let loaded_tasks: HashMap<GuildId, HashMap<ChannelId, CleanupTask>> =
                 serde_json::from_str(&serialized).map_err(EuleError::Serialization)?;
