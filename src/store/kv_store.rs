@@ -81,7 +81,7 @@ impl KvStore {
     /// ```no_run
     /// use eule::store::KvStore;
     ///
-    /// let store = KvStore::new("my_database")?;
+    /// let store = KvStore::new("my_database");
     /// ```
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self, EuleError> {
         let db = sled::open(path).map_err(EuleError::from)?;

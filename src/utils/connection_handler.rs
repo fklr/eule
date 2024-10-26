@@ -100,50 +100,40 @@ impl<B: BotInterface> ConnectionHandler<B> {
     ///
     /// A Result indicating success or containing an EuleError if an unrecoverable error occurred.
     pub async fn run(&mut self) -> Result<(), EuleError> {
-        let mut backoff = Duration::from_secs(1);
-
         loop {
             tokio::select! {
-                _ = tokio::time::sleep(Duration::from_millis(100)) => {
+                biased;  // Check commands first
+
+                // Check for commands
+                Some(cmd) = self.command_rx.recv() => {
+                    match cmd {
+                        ConnectionCommand::Reconnect => {
+                            self.state = ConnectionState::Reconnecting;
+                        }
+                        ConnectionCommand::Shutdown => {
+                            return Ok(());
+                        }
+                    }
+                }
+
+                // Handle connection state
+                _ = tokio::time::sleep(Duration::from_millis(10)) => {
                     match self.state {
                         ConnectionState::Disconnected | ConnectionState::Reconnecting => {
-                            if self.last_connection_attempt.elapsed() >= backoff {
-                                match self.bot.connect().await {
-                                    Ok(_) => {
-                                        tracing::info!("Bot connected successfully.");
-                                        self.state = ConnectionState::Connected;
-                                        backoff = Duration::from_secs(1);
-                                    }
-                                    Err(e) => {
-                                        tracing::error!("Connection attempt failed: {}. Retrying in {:?}...", e, backoff);
-                                        self.state = ConnectionState::Reconnecting;
-                                        self.last_connection_attempt = Instant::now();
-                                        backoff = std::cmp::min(backoff * 2, self.max_retry_interval);
-                                    }
+                            match self.bot.connect().await {
+                                Ok(_) => {
+                                    self.state = ConnectionState::Connected;
+                                }
+                                Err(_) => {
+                                    self.state = ConnectionState::Reconnecting;
                                 }
                             }
                         }
                         ConnectionState::Connected => {
-                            if let Err(e) = self.bot.run().await {
-                                tracing::error!("Bot disconnected: {}. Attempting to reconnect...", e);
+                            if (self.bot.run().await).is_err() {
                                 self.state = ConnectionState::Reconnecting;
-                                self.last_connection_attempt = Instant::now();
                             }
                         }
-                    }
-                }
-                command = self.command_rx.recv() => {
-                    match command {
-                        Some(ConnectionCommand::Reconnect) => {
-                            tracing::info!("Received reconnection command.");
-                            self.state = ConnectionState::Reconnecting;
-                            self.last_connection_attempt = Instant::now() - backoff;
-                        }
-                        Some(ConnectionCommand::Shutdown) => {
-                            tracing::info!("Received shutdown command. Exiting.");
-                            break Ok(());
-                        }
-                        None => break Ok(()),
                     }
                 }
             }
