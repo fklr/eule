@@ -18,7 +18,7 @@ use tokio::time::Duration;
 #[poise::command(
     slash_command,
     prefix_command,
-    subcommands("add", "remove", "list"),
+    subcommands("add", "remove", "list", "workers"),
     required_permissions = "MANAGE_MESSAGES"
 )]
 pub async fn autoclean(_: Context<'_>) -> Result<(), EuleError> {
@@ -145,6 +145,27 @@ pub async fn list(ctx: Context<'_>) -> Result<(), EuleError> {
         ))
         .await?;
     }
+
+    Ok(())
+}
+
+/// Displays the current number of active cleaning workers.
+///
+/// This command shows how many worker threads are currently processing cleanup tasks.
+#[poise::command(slash_command, prefix_command)]
+pub async fn workers(ctx: Context<'_>) -> Result<(), EuleError> {
+    let worker_count = ctx.data().autoclean_manager.worker_count().await;
+
+    let message = if worker_count == 1 {
+        "I am currently the only EULR unit on duty, Commander! 🫡"
+    } else {
+        &format!(
+            "There are currently {} EULR units on duty, Commander! 🫡",
+            worker_count
+        )
+    };
+
+    ctx.say(message).await?;
 
     Ok(())
 }

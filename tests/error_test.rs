@@ -30,6 +30,8 @@ fn test_all_error_variants() {
         EuleError::Connection(ConnectionError::CommandSendError("Send error".into())),
         EuleError::Connection(ConnectionError::CommandReceiveError("Receive error".into())),
         EuleError::Connection(ConnectionError::UnexpectedShutdown),
+        EuleError::Connection(ConnectionError::TaskJoinError("Task join error".into())),
+        EuleError::Connection(ConnectionError::HandlerError("Handler error".into())),
     ];
 
     for error in errors {
@@ -114,6 +116,12 @@ fn test_error_display() {
             }
             EuleError::Connection(ConnectionError::UnexpectedShutdown) => {
                 assert!(error_string.contains("Connection handler unexpectedly shut down"))
+            }
+            EuleError::Connection(ConnectionError::TaskJoinError(_)) => {
+                assert!(error_string.contains("Task join error"))
+            }
+            EuleError::Connection(ConnectionError::HandlerError(_)) => {
+                assert!(error_string.contains("Handler error"))
             }
         }
     }

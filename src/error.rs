@@ -10,6 +10,7 @@ use poise::serenity_prelude::Error as SerenityError;
 use serde_json::Error as SerdeError;
 use sled::Error as SledError;
 use std::{fmt, io::Error as IoError};
+use tokio::{sync::mpsc::error::SendError, task::JoinError};
 
 /// Represents all possible errors in Eule.
 #[derive(Debug, Diagnostic)]
@@ -75,6 +76,13 @@ pub enum EuleError {
     Connection(ConnectionError),
 }
 
+/// Conversion from std::io::Error to EuleError
+impl From<std::io::Error> for EuleError {
+    fn from(err: std::io::Error) -> Self {
+        EuleError::Io(err)
+    }
+}
+
 /// Conversion from MietteReport to EuleError
 impl From<MietteReport> for EuleError {
     fn from(err: MietteReport) -> Self {
@@ -93,6 +101,20 @@ impl From<SerenityError> for EuleError {
 impl From<SledError> for EuleError {
     fn from(err: SledError) -> Self {
         EuleError::Database(err)
+    }
+}
+
+/// Conversion from tokio's SendError to EuleError
+impl<T> From<SendError<T>> for EuleError {
+    fn from(err: SendError<T>) -> Self {
+        EuleError::Connection(ConnectionError::CommandSendError(err.to_string()))
+    }
+}
+
+/// Conversion from tokio's JoinError to EuleError
+impl From<JoinError> for EuleError {
+    fn from(err: JoinError) -> Self {
+        EuleError::Connection(ConnectionError::TaskJoinError(err.to_string()))
     }
 }
 
@@ -135,7 +157,7 @@ impl fmt::Display for EuleError {
 }
 
 /// Represents errors specific to the connection handling process.
-#[derive(Debug, Diagnostic)]
+#[derive(Clone, Debug, Diagnostic)]
 pub enum ConnectionError {
     /// Represents a failed connection attempt.
     #[diagnostic(code(eule::connection::failed_attempt))]
@@ -156,6 +178,14 @@ pub enum ConnectionError {
     /// Represents an unexpected shutdown of the connection.
     #[diagnostic(code(eule::connection::unexpected_shutdown))]
     UnexpectedShutdown,
+
+    /// Represents an error when trying to join a task.
+    #[diagnostic(code(eule::connection::task_join_error))]
+    TaskJoinError(String),
+
+    /// Error from the handler itself.
+    #[diagnostic(code(eule::connection::handler_error))]
+    HandlerError(String),
 }
 
 impl fmt::Display for ConnectionError {
@@ -173,6 +203,12 @@ impl fmt::Display for ConnectionError {
             }
             ConnectionError::UnexpectedShutdown => {
                 write!(f, "Connection handler unexpectedly shut down")
+            }
+            ConnectionError::TaskJoinError(msg) => {
+                write!(f, "Failed to join task: {}", msg)
+            }
+            ConnectionError::HandlerError(msg) => {
+                write!(f, "Handler error: {}", msg)
             }
         }
     }

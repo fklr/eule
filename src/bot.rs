@@ -1,5 +1,5 @@
 use crate::{
-    commands::{autoclean, clean, status, workers},
+    commands::{autoclean, clean, status},
     error::EuleError,
     store::KvStore,
     tasks::AutocleanManager,
@@ -40,21 +40,17 @@ pub struct Bot {
 }
 
 impl Bot {
-    /// Creates a new `Bot` instance.
+    /// Creates a new `Bot` instance with a custom KvStore.
+    ///
+    /// This constructor allows dependency injection of the KvStore, which is particularly
+    /// useful for testing scenarios where we want to use a test-specific database path.
+    ///
+    /// # Arguments
+    /// * `kv_store` - An Arc-wrapped KvStore instance to use for this bot
     ///
     /// # Returns
-    ///
-    /// Returns a `Result` containing the new `Bot` instance if successful,
-    /// or an error if initialization fails.
-    ///
-    /// # Errors
-    ///
-    /// This function will return an error if:
-    /// - The KvStore initialization fails
-    /// - The AutocleanManager fails to load tasks
-    pub async fn new() -> Result<Self, EuleError> {
-        let kv_store = Arc::new(KvStore::new("eule_data")?);
-        tracing::info!("KvStore initialized at 'eule_data'");
+    /// A Result containing the new Bot instance if successful, or an error if initialization fails.
+    pub async fn with_store(kv_store: Arc<KvStore>) -> Result<Self, EuleError> {
         let autoclean_manager = AutocleanManager::new(Arc::clone(&kv_store));
         tracing::info!("AutocleanManager initialized with KvStore");
         autoclean_manager.load_tasks().await?;
@@ -67,6 +63,18 @@ impl Bot {
             is_connected: AtomicBool::new(false),
             connection_attempts: AtomicUsize::new(0),
         })
+    }
+
+    /// Creates a new `Bot` instance with default configuration.
+    ///
+    /// This constructor creates a new KvStore in the default "eule_data" directory.
+    /// For testing scenarios, prefer using `with_store()` instead.
+    ///
+    /// # Returns
+    /// A Result containing the new Bot instance if successful, or an error if initialization fails.
+    pub async fn new() -> Result<Self, EuleError> {
+        let kv_store = Arc::new(KvStore::new("eule_data")?);
+        Self::with_store(kv_store).await
     }
 
     /// Retrieves the stored Discord API token or prompts the user to enter a new one.
@@ -200,7 +208,7 @@ impl Bot {
         let token = Self::get_or_set_token(Arc::clone(&self.kv_store)).await?;
 
         let options = poise::FrameworkOptions {
-            commands: vec![autoclean(), clean(), status(), workers()],
+            commands: vec![autoclean(), clean(), status()],
             ..Default::default()
         };
 

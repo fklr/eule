@@ -103,4 +103,3 @@ pub use bot::Bot;
 pub use commands::autoclean::{add, autoclean, list, remove};
 pub use commands::clean::clean;
 pub use commands::status::status;
-pub use commands::workers::workers;
